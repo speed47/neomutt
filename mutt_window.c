@@ -36,13 +36,17 @@
 #include "mutt_menu.h"
 #include "options.h"
 
-struct MuttWindow *MuttHelpWindow = NULL;    /**< Help Window */
-struct MuttWindow *MuttIndexWindow = NULL;   /**< Index Window */
-struct MuttWindow *MuttStatusWindow = NULL;  /**< Status Window */
-struct MuttWindow *MuttMessageWindow = NULL; /**< Message Window */
+struct MuttWindow *RootWindow = NULL; ///< Parent of all Windows
+
+struct MuttWindow *MuttHelpWindow = NULL;     ///< Help Window
+struct MuttWindow *MuttIndexWindow = NULL;    ///< Index Window
+struct MuttWindow *MuttMessageWindow = NULL;  ///< Message Window
+struct MuttWindow *MuttPagerBarWindow = NULL; ///< Pager Status Window
+struct MuttWindow *MuttPagerWindow = NULL;    ///< Pager Window
 #ifdef USE_SIDEBAR
-struct MuttWindow *MuttSidebarWindow = NULL; /**< Sidebar Window */
+struct MuttWindow *MuttSidebarWindow = NULL; ///< Sidebar Window
 #endif
+struct MuttWindow *MuttStatusWindow = NULL; ///< Status Window
 
 /**
  * mutt_window_new - Create a new Window
@@ -57,7 +61,7 @@ struct MuttWindow *mutt_window_new(void)
 }
 
 /**
- * mutt_window_free - Free a Window
+ * mutt_window_free - Free a Window and its children
  * @param ptr Window to free
  */
 void mutt_window_free(struct MuttWindow **ptr)
@@ -65,7 +69,9 @@ void mutt_window_free(struct MuttWindow **ptr)
   if (!ptr || !*ptr)
     return;
 
-  // struct MuttWindow *win = *ptr;
+  struct MuttWindow *win = *ptr;
+
+  mutt_winlist_free(&win->children);
 
   FREE(ptr);
 }
@@ -132,13 +138,16 @@ void mutt_window_clrtoeol(struct MuttWindow *win)
  */
 void mutt_window_free_all(void)
 {
-  FREE(&MuttHelpWindow);
-  FREE(&MuttIndexWindow);
-  FREE(&MuttStatusWindow);
-  FREE(&MuttMessageWindow);
+  MuttHelpWindow = NULL;
+  MuttIndexWindow = NULL;
+  MuttMessageWindow = NULL;
+  MuttPagerBarWindow = NULL;
+  MuttPagerWindow = NULL;
 #ifdef USE_SIDEBAR
-  FREE(&MuttSidebarWindow);
+  MuttSidebarWindow = NULL;
 #endif
+  MuttStatusWindow = NULL;
+  mutt_window_free(&RootWindow);
 }
 
 /**
@@ -169,13 +178,42 @@ void mutt_window_getxy(struct MuttWindow *win, int *x, int *y)
  */
 void mutt_window_init(void)
 {
+  if (RootWindow)
+    return;
+
+  struct MuttWindow *v1 = mutt_window_new();
+  struct MuttWindow *v2 = mutt_window_new();
+  struct MuttWindow *h3 = mutt_window_new();
+  struct MuttWindow *v4 = mutt_window_new();
+  struct MuttWindow *v5 = mutt_window_new();
+  struct MuttWindow *v6 = mutt_window_new();
+
   MuttHelpWindow = mutt_window_new();
   MuttIndexWindow = mutt_window_new();
-  MuttStatusWindow = mutt_window_new();
   MuttMessageWindow = mutt_window_new();
-#ifdef USE_SIDEBAR
+  MuttPagerBarWindow = mutt_window_new();
+  MuttPagerWindow = mutt_window_new();
   MuttSidebarWindow = mutt_window_new();
-#endif
+  MuttStatusWindow = mutt_window_new();
+
+  RootWindow = v1;
+
+  mutt_window_add_child(v1, v2);
+  mutt_window_add_child(v1, MuttMessageWindow);
+
+  mutt_window_add_child(v2, MuttHelpWindow);
+  mutt_window_add_child(v2, h3);
+
+  mutt_window_add_child(h3, MuttSidebarWindow);
+  mutt_window_add_child(h3, v4);
+
+  mutt_window_add_child(v4, v5);
+  mutt_window_add_child(v5, MuttIndexWindow);
+  mutt_window_add_child(v5, MuttStatusWindow);
+
+  mutt_window_add_child(v4, v6);
+  mutt_window_add_child(v6, MuttPagerWindow);
+  mutt_window_add_child(v6, MuttPagerBarWindow);
 }
 
 /**
@@ -230,6 +268,22 @@ int mutt_window_mvprintw(struct MuttWindow *win, int row, int col, const char *f
 }
 
 /**
+ * mutt_window_copy_size - Copy the size of one Window to another
+ * @param win_src Window to copy
+ * @param win_dst Window to resize
+ */
+void mutt_window_copy_size(const struct MuttWindow *win_src, struct MuttWindow *win_dst)
+{
+  if (!win_src || !win_dst)
+    return;
+
+  win_dst->rows = win_src->rows;
+  win_dst->cols = win_src->cols;
+  win_dst->row_offset = win_src->row_offset;
+  win_dst->col_offset = win_src->col_offset;
+}
+
+/**
  * mutt_window_reflow - Resize the Windows to fit the screen
  */
 void mutt_window_reflow(void)
@@ -244,16 +298,16 @@ void mutt_window_reflow(void)
   MuttStatusWindow->row_offset = C_StatusOnTop ? 0 : LINES - 2;
   MuttStatusWindow->col_offset = 0;
 
-  memcpy(MuttHelpWindow, MuttStatusWindow, sizeof(struct MuttWindow));
+  mutt_window_copy_size(MuttStatusWindow, MuttHelpWindow);
   if (C_Help)
     MuttHelpWindow->row_offset = C_StatusOnTop ? LINES - 2 : 0;
   else
     MuttHelpWindow->rows = 0;
 
-  memcpy(MuttMessageWindow, MuttStatusWindow, sizeof(struct MuttWindow));
+  mutt_window_copy_size(MuttStatusWindow, MuttMessageWindow);
   MuttMessageWindow->row_offset = LINES - 1;
 
-  memcpy(MuttIndexWindow, MuttStatusWindow, sizeof(struct MuttWindow));
+  mutt_window_copy_size(MuttStatusWindow, MuttIndexWindow);
   MuttIndexWindow->rows = MAX(
       LINES - MuttStatusWindow->rows - MuttHelpWindow->rows - MuttMessageWindow->rows, 0);
   MuttIndexWindow->row_offset =
@@ -262,7 +316,7 @@ void mutt_window_reflow(void)
 #ifdef USE_SIDEBAR
   if (C_SidebarVisible)
   {
-    memcpy(MuttSidebarWindow, MuttIndexWindow, sizeof(struct MuttWindow));
+    mutt_window_copy_size(MuttIndexWindow, MuttSidebarWindow);
     MuttSidebarWindow->cols = C_SidebarWidth;
     MuttIndexWindow->cols -= C_SidebarWidth;
 
@@ -327,4 +381,37 @@ int mutt_window_wrap_cols(int width, short wrap)
     return (wrap < width) ? wrap : width;
   else
     return width;
+}
+
+/**
+ * mutt_window_add_child - Add a child to Window
+ * @param parent Window to add to
+ * @param child  Window to append
+ */
+void mutt_window_add_child(struct MuttWindow *parent, struct MuttWindow *child)
+{
+  if (!parent || !child)
+    return;
+
+  TAILQ_INSERT_TAIL(&parent->children, child, entries);
+  child->parent = parent;
+}
+
+/**
+ * mutt_winlist_free - Free a tree of Windows
+ * @param head WindowList to free
+ */
+void mutt_winlist_free(struct MuttWindowList *head)
+{
+  if (!head)
+    return;
+
+  struct MuttWindow *np = NULL;
+  struct MuttWindow *tmp = NULL;
+  TAILQ_FOREACH_SAFE(np, head, entries, tmp)
+  {
+    TAILQ_REMOVE(head, np, entries);
+    mutt_winlist_free(&np->children);
+    FREE(&np);
+  }
 }

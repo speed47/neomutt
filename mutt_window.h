@@ -63,24 +63,28 @@ struct MuttWindow
   int col_offset;
 
   bool visible;
-  enum MuttWindowOrientation orient;
-  enum MuttWindowSize size;
+  enum MuttWindowOrientation orient; ///< Which direction the Window will expand
+  enum MuttWindowSize size;          ///< Type of Window, e.g. Fixed, Maximise
 
-  TAILQ_ENTRY(MuttWindow) entries;
-  struct MuttWindow *parent;
-  struct MuttWindowList children;
+  TAILQ_ENTRY(MuttWindow) entries;   ///< Linked list
+  struct MuttWindow *parent;         ///< Parent Window
+  struct MuttWindowList children;    ///< Children Windows
 };
 
 extern struct MuttWindow *MuttHelpWindow;
 extern struct MuttWindow *MuttIndexWindow;
 extern struct MuttWindow *MuttMessageWindow;
+extern struct MuttWindow *MuttPagerBarWindow;
+extern struct MuttWindow *MuttPagerWindow;
 #ifdef USE_SIDEBAR
 extern struct MuttWindow *MuttSidebarWindow;
 #endif
 extern struct MuttWindow *MuttStatusWindow;
 
+void               mutt_window_add_child          (struct MuttWindow *parent, struct MuttWindow *child);
 void               mutt_window_clearline          (struct MuttWindow *win, int row);
 void               mutt_window_clrtoeol           (struct MuttWindow *win);
+void               mutt_window_copy_size          (const struct MuttWindow *win_src, struct MuttWindow *win_dst);
 void               mutt_window_free               (struct MuttWindow **ptr);
 void               mutt_window_free_all           (void);
 void               mutt_window_getxy              (struct MuttWindow *win, int *x, int *y);
@@ -92,5 +96,7 @@ struct MuttWindow *mutt_window_new                (void);
 void               mutt_window_reflow             (void);
 void               mutt_window_reflow_message_rows(int mw_rows);
 int                mutt_window_wrap_cols          (int width, short wrap);
+
+void mutt_winlist_free       (struct MuttWindowList *head);
 
 #endif /* MUTT_MUTT_WINDOW_H */
