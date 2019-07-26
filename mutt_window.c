@@ -64,8 +64,9 @@ struct MuttWindow *mutt_window_new(enum MuttWindowOrientation orient,
 
   win->orient = orient;
   win->size = size;
-  win->rows = rows;
-  win->cols = cols;
+  win->req_rows = rows;
+  win->req_cols = cols;
+  win->state.visible = true;
   TAILQ_INIT(&win->children);
   return win;
 }
@@ -126,7 +127,7 @@ void mutt_window_clrtoeol(struct MuttWindow *win)
   if (!win || !stdscr)
     return;
 
-  if (win->col_offset + win->cols == COLS)
+  if (win->state.col_offset + win->state.cols == COLS)
     clrtoeol();
   else
   {
@@ -134,7 +135,7 @@ void mutt_window_clrtoeol(struct MuttWindow *win)
     int col = 0;
     getyx(stdscr, row, col);
     int curcol = col;
-    while (curcol < (win->col_offset + win->cols))
+    while (curcol < (win->state.col_offset + win->state.cols))
     {
       addch(' ');
       curcol++;
@@ -176,9 +177,9 @@ void mutt_window_getxy(struct MuttWindow *win, int *x, int *y)
 
   getyx(stdscr, row, col);
   if (x)
-    *x = col - win->col_offset;
+    *x = col - win->state.col_offset;
   if (y)
-    *y = row - win->row_offset;
+    *y = row - win->state.row_offset;
 }
 
 /**
@@ -209,7 +210,7 @@ void mutt_window_init(void)
   struct MuttWindow *w6 =
       mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE,
                       MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
-  w6->visible = false; // The Pager and Pager Bar are initially hidden
+  w6->state.visible = false; // The Pager and Pager Bar are initially hidden
 
   MuttHelpWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED,
                                    1, MUTT_WIN_SIZE_UNLIMITED);
@@ -256,7 +257,7 @@ void mutt_window_init(void)
  */
 int mutt_window_move(struct MuttWindow *win, int row, int col)
 {
-  return move(win->row_offset + row, win->col_offset + col);
+  return move(win->state.row_offset + row, win->state.col_offset + col);
 }
 
 /**
@@ -270,7 +271,7 @@ int mutt_window_move(struct MuttWindow *win, int row, int col)
  */
 int mutt_window_mvaddstr(struct MuttWindow *win, int row, int col, const char *str)
 {
-  return mvaddstr(win->row_offset + row, win->col_offset + col, str);
+  return mvaddstr(win->state.row_offset + row, win->state.col_offset + col, str);
 }
 
 /**
@@ -307,10 +308,10 @@ void mutt_window_copy_size(const struct MuttWindow *win_src, struct MuttWindow *
   if (!win_src || !win_dst)
     return;
 
-  win_dst->rows = win_src->rows;
-  win_dst->cols = win_src->cols;
-  win_dst->row_offset = win_src->row_offset;
-  win_dst->col_offset = win_src->col_offset;
+  win_dst->state.rows = win_src->state.rows;
+  win_dst->state.cols = win_src->state.cols;
+  win_dst->state.row_offset = win_src->state.row_offset;
+  win_dst->state.col_offset = win_src->state.col_offset;
 }
 
 /**
@@ -330,9 +331,9 @@ void mutt_window_copy_size(const struct MuttWindow *win_src, struct MuttWindow *
  */
 void mutt_window_reflow_prep(void)
 {
-  MuttHelpWindow->visible = C_Help;
-  MuttSidebarWindow->visible = C_SidebarVisible;
-  MuttSidebarWindow->cols = C_SidebarWidth;
+  MuttHelpWindow->state.visible = C_Help;
+  MuttSidebarWindow->state.visible = C_SidebarVisible;
+  MuttSidebarWindow->req_cols = C_SidebarWidth;
 
   struct MuttWindow *parent = MuttSidebarWindow->parent;
   struct MuttWindow *first = TAILQ_FIRST(&parent->children);
@@ -379,21 +380,21 @@ void mutt_window_reflow_prep(void)
   }
 
   parent = MuttPagerWindow->parent;
-  if (parent->visible)
+  if (parent->state.visible)
   {
-    MuttIndexWindow->rows = C_PagerIndexLines;
+    MuttIndexWindow->req_rows = C_PagerIndexLines;
     MuttIndexWindow->size = MUTT_WIN_SIZE_FIXED;
-    parent = MuttIndexWindow->parent;
-    parent->size = MUTT_WIN_SIZE_MINIMISE;
-    parent->visible = (C_PagerIndexLines != 0);
+
+    MuttIndexWindow->parent->size = MUTT_WIN_SIZE_MINIMISE;
+    MuttIndexWindow->parent->state.visible = (C_PagerIndexLines != 0);
   }
   else
   {
-    MuttIndexWindow->rows = MUTT_WIN_SIZE_UNLIMITED;
+    MuttIndexWindow->req_rows = MUTT_WIN_SIZE_UNLIMITED;
     MuttIndexWindow->size = MUTT_WIN_SIZE_MAXIMISE;
-    parent = MuttIndexWindow->parent;
-    parent->size = MUTT_WIN_SIZE_MAXIMISE;
-    parent->visible = true;
+
+    MuttIndexWindow->parent->size = MUTT_WIN_SIZE_MAXIMISE;
+    MuttIndexWindow->parent->state.visible = true;
   }
 }
 
@@ -408,40 +409,42 @@ void mutt_window_reflow(void)
   mutt_debug(LL_DEBUG2, "entering\n");
   mutt_window_reflow_prep();
 
-  MuttStatusWindow->rows = 1;
-  MuttStatusWindow->cols = COLS;
-  MuttStatusWindow->row_offset = C_StatusOnTop ? 0 : LINES - 2;
-  MuttStatusWindow->col_offset = 0;
+  MuttStatusWindow->state.rows = 1;
+  MuttStatusWindow->state.cols = COLS;
+  MuttStatusWindow->state.row_offset = C_StatusOnTop ? 0 : LINES - 2;
+  MuttStatusWindow->state.col_offset = 0;
 
   mutt_window_copy_size(MuttStatusWindow, MuttHelpWindow);
   if (C_Help)
-    MuttHelpWindow->row_offset = C_StatusOnTop ? LINES - 2 : 0;
+    MuttHelpWindow->state.row_offset = C_StatusOnTop ? LINES - 2 : 0;
   else
-    MuttHelpWindow->rows = 0;
+    MuttHelpWindow->state.rows = 0;
 
   mutt_window_copy_size(MuttStatusWindow, MuttMessageWindow);
-  MuttMessageWindow->row_offset = LINES - 1;
+  MuttMessageWindow->state.row_offset = LINES - 1;
 
   mutt_window_copy_size(MuttStatusWindow, MuttIndexWindow);
-  MuttIndexWindow->rows = MAX(
-      LINES - MuttStatusWindow->rows - MuttHelpWindow->rows - MuttMessageWindow->rows, 0);
-  MuttIndexWindow->row_offset =
-      C_StatusOnTop ? MuttStatusWindow->rows : MuttHelpWindow->rows;
+  MuttIndexWindow->state.rows =
+      MAX(LINES - MuttStatusWindow->state.rows - MuttHelpWindow->state.rows -
+              MuttMessageWindow->state.rows,
+          0);
+  MuttIndexWindow->state.row_offset =
+      C_StatusOnTop ? MuttStatusWindow->state.rows : MuttHelpWindow->state.rows;
 
 #ifdef USE_SIDEBAR
   if (C_SidebarVisible)
   {
     mutt_window_copy_size(MuttIndexWindow, MuttSidebarWindow);
-    MuttSidebarWindow->cols = C_SidebarWidth;
-    MuttIndexWindow->cols -= C_SidebarWidth;
+    MuttSidebarWindow->state.cols = C_SidebarWidth;
+    MuttIndexWindow->state.cols -= C_SidebarWidth;
 
     if (C_SidebarOnRight)
     {
-      MuttSidebarWindow->col_offset = COLS - C_SidebarWidth;
+      MuttSidebarWindow->state.col_offset = COLS - C_SidebarWidth;
     }
     else
     {
-      MuttIndexWindow->col_offset += C_SidebarWidth;
+      MuttIndexWindow->state.col_offset += C_SidebarWidth;
     }
   }
 #endif
@@ -459,20 +462,22 @@ void mutt_window_reflow(void)
  */
 void mutt_window_reflow_message_rows(int mw_rows)
 {
-  MuttMessageWindow->rows = mw_rows;
-  MuttMessageWindow->row_offset = LINES - mw_rows;
+  MuttMessageWindow->state.rows = mw_rows;
+  MuttMessageWindow->state.row_offset = LINES - mw_rows;
 
-  MuttStatusWindow->row_offset = C_StatusOnTop ? 0 : LINES - mw_rows - 1;
+  MuttStatusWindow->state.row_offset = C_StatusOnTop ? 0 : LINES - mw_rows - 1;
 
   if (C_Help)
-    MuttHelpWindow->row_offset = C_StatusOnTop ? LINES - mw_rows - 1 : 0;
+    MuttHelpWindow->state.row_offset = C_StatusOnTop ? LINES - mw_rows - 1 : 0;
 
-  MuttIndexWindow->rows = MAX(
-      LINES - MuttStatusWindow->rows - MuttHelpWindow->rows - MuttMessageWindow->rows, 0);
+  MuttIndexWindow->state.rows =
+      MAX(LINES - MuttStatusWindow->state.rows - MuttHelpWindow->state.rows -
+              MuttMessageWindow->state.rows,
+          0);
 
 #ifdef USE_SIDEBAR
   if (C_SidebarVisible)
-    MuttSidebarWindow->rows = MuttIndexWindow->rows;
+    MuttSidebarWindow->state.rows = MuttIndexWindow->state.rows;
 #endif
 
   /* We don't also set REDRAW_FLOW because this function only

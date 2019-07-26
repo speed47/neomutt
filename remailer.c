@@ -259,8 +259,8 @@ static void mix_free_type2_list(struct Remailer ***ttlp)
 }
 
 #define MIX_HOFFSET 2
-#define MIX_VOFFSET (MuttIndexWindow->rows - 4)
-#define MIX_MAXROW (MuttIndexWindow->rows - 1)
+#define MIX_VOFFSET (MuttIndexWindow->state.rows - 4)
+#define MIX_MAXROW (MuttIndexWindow->state.rows - 1)
 
 /**
  * mix_screen_coordinates - Get the screen coordinates to place a chain
@@ -297,7 +297,7 @@ static void mix_screen_coordinates(struct Remailer **type2_list, struct Coord **
     short oc = c;
     c += strlen(type2_list[chain->ch[i]]->shortname) + 2;
 
-    if (c >= MuttIndexWindow->cols)
+    if (c >= MuttIndexWindow->state.cols)
     {
       oc = MIX_HOFFSET;
       c = MIX_HOFFSET;
@@ -501,7 +501,7 @@ static const char *mix_format_str(char *buf, size_t buflen, size_t col, int cols
 static void mix_entry(char *buf, size_t buflen, struct Menu *menu, int num)
 {
   struct Remailer **type2_list = menu->data;
-  mutt_expando_format(buf, buflen, 0, MuttIndexWindow->cols,
+  mutt_expando_format(buf, buflen, 0, MuttIndexWindow->state.cols,
                       NONULL(C_MixEntryFormat), mix_format_str,
                       (unsigned long) type2_list[num], MUTT_FORMAT_ARROWCURSOR);
 }

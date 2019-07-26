@@ -2150,8 +2150,8 @@ int mutt_write_one_header(FILE *fp, const char *tag, const char *value,
     else
       wraplen = C_WrapHeaders;
   }
-  else if ((wraplen <= 0) || (wraplen > MuttIndexWindow->cols))
-    wraplen = MuttIndexWindow->cols;
+  else if ((wraplen <= 0) || (wraplen > MuttIndexWindow->state.cols))
+    wraplen = MuttIndexWindow->state.cols;
 
   if (tag)
   {
@@ -2772,7 +2772,7 @@ int mutt_invoke_sendmail(struct AddressList *from, struct AddressList *to,
   {
     char cmd[1024];
 
-    mutt_expando_format(cmd, sizeof(cmd), 0, MuttIndexWindow->cols,
+    mutt_expando_format(cmd, sizeof(cmd), 0, MuttIndexWindow->state.cols,
                         NONULL(C_Inews), nntp_format_str, 0, MUTT_FORMAT_NO_FLAGS);
     if (!*cmd)
     {

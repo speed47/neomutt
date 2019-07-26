@@ -277,7 +277,7 @@ int mutt_display_message(struct Mailbox *m, struct Email *e)
     hfi.mailbox = m;
     hfi.pager_progress = ExtPagerProgress;
     hfi.email = e;
-    mutt_make_string_info(buf, sizeof(buf), MuttIndexWindow->cols,
+    mutt_make_string_info(buf, sizeof(buf), MuttIndexWindow->state.cols,
                           NONULL(C_PagerFormat), &hfi, MUTT_FORMAT_NO_FLAGS);
     fputs(buf, fp_out);
     fputs("\n\n", fp_out);
@@ -443,9 +443,9 @@ void ci_bounce_message(struct Mailbox *m, struct EmailList *el)
   snprintf(scratch, sizeof(scratch),
            ngettext("Bounce message to %s?", "Bounce messages to %s?", msg_count), buf);
 
-  if (mutt_strwidth(prompt) > MuttMessageWindow->cols - EXTRA_SPACE)
+  if (mutt_strwidth(prompt) > MuttMessageWindow->state.cols - EXTRA_SPACE)
   {
-    mutt_simple_format(prompt, sizeof(prompt), 0, MuttMessageWindow->cols - EXTRA_SPACE,
+    mutt_simple_format(prompt, sizeof(prompt), 0, MuttMessageWindow->state.cols - EXTRA_SPACE,
                        JUSTIFY_LEFT, 0, scratch, sizeof(scratch), false);
     mutt_str_strcat(prompt, sizeof(prompt), "...?");
   }

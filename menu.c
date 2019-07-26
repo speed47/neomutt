@@ -344,7 +344,7 @@ static void menu_pad_string(struct Menu *menu, char *buf, size_t buflen)
 {
   char *scratch = mutt_str_strdup(buf);
   int shift = C_ArrowCursor ? 3 : 0;
-  int cols = menu->indexwin->cols - shift;
+  int cols = menu->indexwin->state.cols - shift;
 
   mutt_simple_format(buf, buflen, cols, cols, JUSTIFY_LEFT, ' ', scratch,
                      mutt_str_strlen(scratch), true);
@@ -367,11 +367,11 @@ void menu_redraw_full(struct Menu *menu)
   {
     SET_COLOR(MT_COLOR_STATUS);
     mutt_window_move(menu->helpwin, 0, 0);
-    mutt_paddstr(menu->helpwin->cols, menu->help);
+    mutt_paddstr(menu->helpwin->state.cols, menu->help);
     NORMAL_COLOR;
   }
   menu->offset = 0;
-  menu->pagelen = menu->indexwin->rows;
+  menu->pagelen = menu->indexwin->state.rows;
 
   mutt_show_error();
 
@@ -392,7 +392,7 @@ void menu_redraw_status(struct Menu *menu)
   snprintf(buf, sizeof(buf), "-- NeoMutt: %s", menu->title);
   SET_COLOR(MT_COLOR_STATUS);
   mutt_window_move(menu->statuswin, 0, 0);
-  mutt_paddstr(menu->statuswin->cols, buf);
+  mutt_paddstr(menu->statuswin->state.cols, buf);
   NORMAL_COLOR;
   menu->redraw &= ~REDRAW_STATUS;
 }
@@ -985,7 +985,7 @@ struct Menu *mutt_menu_new(enum MenuType type)
   menu->top = 0;
   menu->offset = 0;
   menu->redraw = REDRAW_FULL;
-  menu->pagelen = MuttIndexWindow->rows;
+  menu->pagelen = MuttIndexWindow->state.rows;
   menu->indexwin = MuttIndexWindow;
   menu->statuswin = MuttStatusWindow;
   menu->helpwin = MuttHelpWindow;
@@ -1394,7 +1394,7 @@ int mutt_menu_loop(struct Menu *menu)
     else
     {
       mutt_window_move(menu->indexwin, menu->current - menu->top + menu->offset,
-                       menu->indexwin->cols - 1);
+                       menu->indexwin->state.cols - 1);
     }
 
     mutt_refresh();

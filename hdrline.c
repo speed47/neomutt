@@ -1507,7 +1507,7 @@ void mutt_make_string_flags(char *buf, size_t buflen, const char *s, struct Cont
   hfi.mailbox = m;
   hfi.pager_progress = 0;
 
-  mutt_expando_format(buf, buflen, 0, MuttIndexWindow->cols, s,
+  mutt_expando_format(buf, buflen, 0, MuttIndexWindow->state.cols, s,
                       index_format_str, (unsigned long) &hfi, flags);
 }
 

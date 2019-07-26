@@ -360,7 +360,7 @@ static const char *fmt_smime_command(char *buf, size_t buflen, size_t col, int c
 static void smime_command(char *buf, size_t buflen,
                           struct SmimeCommandContext *cctx, const char *fmt)
 {
-  mutt_expando_format(buf, buflen, 0, MuttIndexWindow->cols, NONULL(fmt),
+  mutt_expando_format(buf, buflen, 0, MuttIndexWindow->state.cols, NONULL(fmt),
                       fmt_smime_command, (unsigned long) cctx, MUTT_FORMAT_NO_FLAGS);
   mutt_debug(LL_DEBUG2, "%s\n", buf);
 }

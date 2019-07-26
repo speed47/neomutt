@@ -178,7 +178,7 @@ int mutt_enter_string_full(char *buf, size_t buflen, int col,
                            CompletionFlags flags, bool multiple, char ***files,
                            int *numfiles, struct EnterState *state)
 {
-  int width = MuttMessageWindow->cols - col - 1;
+  int width = MuttMessageWindow->state.cols - col - 1;
   int redraw;
   bool pass = (flags & MUTT_PASS);
   bool first = true;

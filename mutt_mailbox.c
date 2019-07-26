@@ -221,8 +221,8 @@ bool mutt_mailbox_list(void)
     mutt_buffer_strcpy(path, mutt_b2s(np->mailbox->pathbuf));
     mutt_buffer_pretty_mailbox(path);
 
-    if (!first && (MuttMessageWindow->cols >= 7) &&
-        ((pos + mutt_buffer_len(path)) >= ((size_t) MuttMessageWindow->cols - 7)))
+    if (!first && (MuttMessageWindow->state.cols >= 7) &&
+        ((pos + mutt_buffer_len(path)) >= ((size_t) MuttMessageWindow->state.cols - 7)))
     {
       break;
     }
