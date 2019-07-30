@@ -840,6 +840,7 @@ int main(int argc, char *argv[], char *envp[])
   notify_observer_add(Config->notify, NT_CONFIG, 0, mutt_log_observer, 0);
   notify_observer_add(Config->notify, NT_CONFIG, 0, mutt_menu_observer, 0);
   notify_observer_add(Config->notify, NT_CONFIG, 0, mutt_reply_observer, 0);
+  notify_observer_add(Config->notify, NT_CONFIG, 0, mutt_sb_observer, 0);
 
   if (sendflags & SEND_POSTPONED)
   {

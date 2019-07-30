@@ -324,30 +324,14 @@ void mutt_window_copy_size(const struct MuttWindow *win_src, struct MuttWindow *
  * config variables:
  * - C_Help
  * - C_PagerIndexLines
- * - C_SidebarOnRight
- * - C_SidebarVisible
- * - C_SidebarWidth
  * - C_StatusOnTop
  */
 void mutt_window_reflow_prep(void)
 {
   MuttHelpWindow->state.visible = C_Help;
-  MuttSidebarWindow->state.visible = C_SidebarVisible;
-  MuttSidebarWindow->req_cols = C_SidebarWidth;
 
-  struct MuttWindow *parent = MuttSidebarWindow->parent;
+  struct MuttWindow *parent = MuttHelpWindow->parent;
   struct MuttWindow *first = TAILQ_FIRST(&parent->children);
-
-  if ((C_SidebarOnRight && (first == MuttSidebarWindow)) ||
-      (!C_SidebarOnRight && (first != MuttSidebarWindow)))
-  {
-    // Swap the Sidebar and the Container of the Index/Pager
-    TAILQ_REMOVE(&parent->children, first, entries);
-    TAILQ_INSERT_TAIL(&parent->children, first, entries);
-  }
-
-  parent = MuttHelpWindow->parent;
-  first = TAILQ_FIRST(&parent->children);
 
   if ((C_StatusOnTop && (first == MuttHelpWindow)) ||
       (!C_StatusOnTop && (first != MuttHelpWindow)))
@@ -453,7 +437,7 @@ int mutt_window_wrap_cols(int width, short wrap)
 /**
  * mutt_window_add_child - Add a child to Window
  * @param parent Window to add to
- * @param child  Window to append
+ * @param child  Window to add
  */
 void mutt_window_add_child(struct MuttWindow *parent, struct MuttWindow *child)
 {
