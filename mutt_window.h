@@ -105,7 +105,7 @@ int                mutt_window_move               (struct MuttWindow *win, int r
 int                mutt_window_mvaddstr           (struct MuttWindow *win, int row, int col, const char *str);
 int                mutt_window_mvprintw           (struct MuttWindow *win, int row, int col, const char *fmt, ...);
 struct MuttWindow *mutt_window_new                (enum MuttWindowOrientation orient, enum MuttWindowSize size, int rows, int cols);
-void               mutt_window_reflow             (void);
+void               mutt_window_reflow             (struct MuttWindow *win);
 void               mutt_window_reflow_message_rows(int mw_rows);
 int                mutt_window_wrap_cols          (int width, short wrap);
 
